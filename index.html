@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ตัวประมวลผลรายงานเยี่ยม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+      .drop-active { border-color: #d97706; background-color: #fff7ed; }
+    </style>
+  </head>
+  <body class="bg-gradient-to-b from-slate-50 to-slate-100 min-h-screen text-gray-900">
+    <header class="bg-white border-b border-gray-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="h-8 w-8 rounded bg-amber-600 text-white flex items-center justify-center font-bold">D</div>
+          <div class="font-semibold">ตัวประมวลผลข้อมูลการเยี่ยม</div>
+        </div>
+        <div class="text-xs text-gray-500">เวอร์ชันนำเสนอ</div>
+      </div>
+    </header>
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <div class="mb-6">
+        <p class="text-sm text-gray-600">อัปโหลดไฟล์ 2 รายงานหลัก (แผนเยี่ยม + รายงานเยี่ยม) และสามารถข้ามรายงานร้านปิดได้ จากนั้นกดปุ่มประมวลผล</p>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4 mb-6">
+        <div class="md:col-span-2 space-y-4">
+          <div id="dropzone" class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-white transition-colors shadow-sm">
+            <div class="flex flex-col items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-10 h-10 text-amber-600"><path d="M12 16a1 1 0 0 1-1-1V8.414L8.707 10.707a1 1 0 0 1-1.414-1.414l4-4a1 1 0 0 1 1.414 0l4 4a1 1 0 1 1-1.414 1.414L13 8.414V15a1 1 0 0 1-1 1Z"/><path d="M6 18a2 2 0 0 1-2-2V13a1 1 0 1 1 2 0v3h12v-3a1 1 0 1 1 2 0v3a2 2 0 0 1-2 2H6Z"/></svg>
+              <div class="text-gray-800 font-medium">ลากและวางไฟล์ Excel มาที่นี่</div>
+              <div class="text-xs text-gray-500">หรือ</div>
+              <label class="inline-flex mt-1">
+                <span class="px-3 py-2 bg-green-600 text-white text-sm rounded-md cursor-pointer hover:bg-green-700 transition-colors">เลือกไฟล์</span>
+                <input id="fileInput" type="file" class="hidden" multiple accept=".xlsx,.xls,.csv" />
+              </label>
+              <div class="text-xs text-gray-400 mt-2">รองรับ: .xlsx, .xls</div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative">
+            <div class="absolute left-0 right-0 top-0 h-1.5 bg-amber-600 rounded-t-xl"></div>
+            <div class="font-semibold mb-3">
+              <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm">สถานะไฟล์</span>
+            </div>
+            <ul id="checklist" class="space-y-3 text-sm">
+              <li id="status-callplan" class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9l5-5V4a2 2 0 0 0-2-2H6Zm9 18v-3a2 2 0 0 1 2-2h3l-5 5Z"/></svg>
+                  <span data-label>รายงานแผนเยี่ยม</span>
+                </div>
+                <div class="inline-flex items-center gap-2">
+                  <span data-status class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">ยังไม่อัปโหลด</span>
+                  <span data-filename class="text-gray-500"></span>
+                </div>
+              </li>
+              <li id="status-visits" class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M4 5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Zm11 0v3a2 2 0 0 0 2 2h3"/></svg>
+                  <span data-label>รายงานเยี่ยม</span>
+                </div>
+                <div class="inline-flex items-center gap-2">
+                  <span data-status class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">ยังไม่อัปโหลด</span>
+                  <span data-filename class="text-gray-500"></span>
+                </div>
+              </li>
+              <li id="status-closed" class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h9l5-5V4a2 2 0 0 0-2-2H6Zm9 18v-3a2 2 0 0 1 2-2h3l-5 5Z"/></svg>
+                  <span data-label>รายงานร้านปิด — ไม่บังคับ</span>
+                </div>
+                <div class="inline-flex items-center gap-2">
+                  <span data-status class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">ยังไม่อัปโหลด</span>
+                  <span data-filename class="text-gray-500"></span>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-xl p-4 border border-gray-200 h-fit shadow-sm relative">
+          <div class="absolute left-0 right-0 top-0 h-1.5 bg-amber-600 rounded-t-xl"></div>
+          <div class="font-semibold mb-2">
+            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm">การทำงาน</span>
+          </div>
+          <div class="space-y-3">
+            <button id="processBtn" disabled class="w-full px-3 py-2 rounded-md bg-gray-300 text-gray-600 cursor-not-allowed">ประมวลผลข้อมูล</button>
+            <button id="resetBtn" class="w-full px-3 py-2 rounded-md bg-red-600 text-white hover:bg-red-700">ล้างไฟล์ทั้งหมด</button>
+            <div id="message" class="text-xs text-gray-600"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl p-4 border border-gray-200 mb-4 shadow-sm relative">
+        <div class="absolute left-0 right-0 top-0 h-1.5 bg-amber-600 rounded-t-xl"></div>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div class="font-semibold">
+            <span class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md border border-slate-200 bg-slate-50 text-slate-700 text-sm">ผลลัพธ์</span>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <div class="relative w-full sm:w-96">
+              <svg class="absolute left-3 top-2.5 w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.9 14.32a8 8 0 1 1 1.414-1.414l4.387 4.387a1 1 0 0 1-1.414 1.414l-4.387-4.387ZM14 8a6 6 0 1 1-12 0 6 6 0 0 1 12 0Z" clip-rule="evenodd"/></svg>
+              <input id="search" type="text" placeholder="ค้นหา (พิมพ์หลายคำได้ คั่นด้วยช่องว่าง)" class="w-full border border-gray-300 rounded-md pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" />
+            </div>
+            <button id="exportBtn" class="px-3 py-2 rounded-md bg-green-600 text-white text-sm hover:bg-green-700">Export Excel</button>
+          </div>
+        </div>
+        <div id="dashboard" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-3"></div>
+        <div class="overflow-auto mt-3">
+          <table class="min-w-full text-sm">
+            <thead class="bg-gray-100 text-gray-700 sticky top-0 z-10">
+              <tr>
+                <th class="px-3 py-2 text-left">บริษัท</th>
+                <th class="px-3 py-2 text-left">ช่องทาง</th>
+                <th class="px-3 py-2 text-left">รหัสร้านค้า</th>
+                <th class="px-3 py-2 text-left">ชื่อร้านค้า</th>
+                <th class="px-3 py-2 text-left">รหัสพนักงาน</th>
+                <th class="px-3 py-2 text-left">ชื่อพนักงาน</th>
+                <th class="px-3 py-2 text-left">นามสกุลพนักงาน</th>
+                <th class="px-3 py-2 text-right">&lt; 15 นาที</th>
+                <th class="px-3 py-2 text-right">≥ 15 นาที</th>
+                <th class="px-3 py-2 text-right">บันทึกร้านปิด</th>
+                <th class="px-3 py-2 text-right">ไม่เคยเยี่ยม</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody" class="divide-y"></tbody>
+          </table>
+        </div>
+        <div id="rowsInfo" class="mt-2 text-xs text-gray-600"></div>
+        <button id="seeMoreBtn" class="hidden mt-2 w-full px-4 py-2 rounded-md border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800">See more</button>
+      </div>
+
+      <div class="text-xs text-gray-500">
+        หมายเหตุ: ระบบตรวจชนิดไฟล์จากชื่อชีตและหัวคอลัมน์ตามแถวที่กำหนด หากรูปแบบไฟล์เปลี่ยนไปอาจตรวจไม่พบ
+      </div>
+    </div>
+
+    <script>
+      // Expected schema
+      const CALLPLAN_SHEET = 'CallPlanData';
+      const CALLPLAN_HEADER_ROW = 1; // 1-based
+      const CALLPLAN_COLUMNS = ['บริษัท','ช่องทาง','ลำดับการเข้าเยี่ยม','รหัสร้านค้า','ชื่อร้านค้า','รหัสพนักงาน','ชื่อพนักงาน','นามสกุลพนักงาน','วันที่เข้าเยี่ยม'];
+
+      const VISITS_SHEET = 'Sheet1';
+      const VISITS_HEADER_ROW = 5; // 1-based
+      const VISITS_COLUMNS = ['ลำดับที่','รหัสพนักงาน','ชื่อพนักงาน','รหัสร้านค้า','ชื่อร้านค้า','ละติจูดเข้า','ลองจิจูดเข้า','ระยะห่างเข้า (เมตร)','เวลาเข้า','เหตุผลการเข้านอกพิกัด','ละติจูดออก','ลองจิจูดออก','ระยะห่างออก (เมตร)','เวลาออก','เหตุผลการออกนอกพิกัด','ใช้เวลา','Note','ในแผน/นอกแผน','วันที่เข้าเยี่ยม'];
+
+      const CLOSED_SHEET = 'Sheet1';
+      const CLOSED_HEADER_ROW = 2; // 1-based
+      const CLOSED_COLUMNS = ['transactionId','templateId','templateName','version','createdDate','shopCode','saleOrg','shopName','companyCode','long','lat','createdBy','ชื่อ','นามสกุล','isNoAuth','BU','saleOrgId','region','channel','saleIntSurveyId','ร้านปิด/ร้านไม่มีกิจกรรม'];
+
+      const state = {
+        callplan: null,
+        visits: null,
+        closed: null,
+        files: { callplan: null, visits: null, closed: null },
+        results: [],
+        filter: { tokens: [], dash: null }, // dash: one of null|'lt15'|'ge15'|'closed'|'never'
+      };
+
+      const $ = (sel) => document.querySelector(sel);
+      const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+      const dropzone = $('#dropzone');
+      const fileInput = $('#fileInput');
+      const processBtn = $('#processBtn');
+      const resetBtn = $('#resetBtn');
+      const message = $('#message');
+      const resultBody = $('#resultBody');
+      const searchInput = $('#search');
+      const dashboardEl = $('#dashboard');
+      const exportBtn = document.getElementById('exportBtn');
+      const seeMoreBtn = $('#seeMoreBtn');
+      const rowsInfo = $('#rowsInfo');
+
+      function setStatus(id, ok, filename) {
+        const li = document.getElementById('status-' + id);
+        if (!li) return;
+        const statusEl = li.querySelector('[data-status]');
+        const fileEl = li.querySelector('[data-filename]');
+        if (statusEl) {
+          statusEl.textContent = ok ? 'พร้อม' : 'ยังไม่อัปโหลด';
+          statusEl.className = ok
+            ? 'px-2 py-0.5 rounded-full text-xs bg-amber-100 text-amber-800'
+            : 'px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600';
+        }
+        if (fileEl) {
+          fileEl.textContent = filename ? `(${filename})` : '';
+        }
+      }
+
+      // Escape helper
+      function escapeHtml(str) {
+        return String(str).replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]));
+      }
+
+      function enableProcessIfReady() {
+        // Closed report is optional; require only callplan + visits
+        const ready = !!(state.callplan && state.visits);
+        processBtn.disabled = !ready;
+        processBtn.className = ready ? 'w-full px-3 py-2 rounded-md bg-green-600 text-white hover:bg-green-700' : 'w-full px-3 py-2 rounded-md bg-gray-300 text-gray-600 cursor-not-allowed';
+      }
+
+      // File handling
+      dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drop-active'); });
+      dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drop-active'));
+      dropzone.addEventListener('drop', async (e) => {
+        e.preventDefault(); dropzone.classList.remove('drop-active');
+        const files = Array.from(e.dataTransfer.files || []);
+        await handleFiles(files);
+      });
+      fileInput.addEventListener('change', async (e) => {
+        const files = Array.from(e.target.files || []);
+        await handleFiles(files);
+        fileInput.value = '';
+      });
+
+      async function handleFiles(files) {
+        message.textContent = '';
+        for (const file of files) {
+          try {
+            const wb = await readWorkbook(file);
+            const type = detectReportType(wb);
+            if (!type) {
+              message.textContent = `ไม่รู้จักรูปแบบไฟล์: ${file.name}`;
+              continue;
+            }
+            if (type === 'callplan') {
+              state.callplan = parseCallPlan(wb);
+              state.files.callplan = file.name;
+              setStatus('callplan', true, file.name);
+            } else if (type === 'visits') {
+              state.visits = parseVisits(wb);
+              state.files.visits = file.name;
+              setStatus('visits', true, file.name);
+            } else if (type === 'closed') {
+              state.closed = parseClosed(wb);
+              state.files.closed = file.name;
+              setStatus('closed', true, file.name);
+            }
+          } catch (err) {
+            console.error(err);
+            message.textContent = `เกิดข้อผิดพลาดกับไฟล์: ${file.name}`;
+          }
+        }
+        enableProcessIfReady();
+      }
+
+      function readWorkbook(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const wb = XLSX.read(data, { type: 'array' });
+              resolve(wb);
+            } catch (err) { reject(err); }
+          };
+          reader.onerror = reject;
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      function rowValues(sheet, row1Based) {
+        // Returns array of cell values at a specific 1-based row index
+        const range = XLSX.utils.decode_range(sheet['!ref']);
+        const rowIndex = row1Based - 1;
+        const out = [];
+        for (let C = range.s.c; C <= range.e.c; C++) {
+          const cellAddress = { r: rowIndex, c: C };
+          const cellRef = XLSX.utils.encode_cell(cellAddress);
+          const cell = sheet[cellRef];
+          out.push(cell ? String(cell.v).trim() : '');
+        }
+        return out;
+      }
+
+      function hasAllColumns(headerRow, expectedCols) {
+        const set = new Set(headerRow.map(v => String(v).trim()));
+        return expectedCols.every(col => set.has(col));
+      }
+
+      function detectReportType(wb) {
+        // Call plan
+        if (wb.Sheets[CALLPLAN_SHEET]) {
+          const sheet = wb.Sheets[CALLPLAN_SHEET];
+          const header = rowValues(sheet, CALLPLAN_HEADER_ROW);
+          if (hasAllColumns(header, CALLPLAN_COLUMNS)) return 'callplan';
+        }
+        // Visits
+        if (wb.Sheets[VISITS_SHEET]) {
+          const sheet = wb.Sheets[VISITS_SHEET];
+          const header = rowValues(sheet, VISITS_HEADER_ROW);
+          if (hasAllColumns(header, VISITS_COLUMNS)) return 'visits';
+        }
+        // Closed
+        if (wb.Sheets[CLOSED_SHEET]) {
+          const sheet = wb.Sheets[CLOSED_SHEET];
+          const header = rowValues(sheet, CLOSED_HEADER_ROW);
+          if (hasAllColumns(header, CLOSED_COLUMNS)) return 'closed';
+        }
+        return null;
+      }
+
+      function buildIndex(header, columns) {
+        const index = {};
+        for (const col of columns) {
+          index[col] = header.findIndex(h => String(h).trim() === col);
+        }
+        return index;
+      }
+
+      function parseCallPlan(wb) {
+        const sheet = wb.Sheets[CALLPLAN_SHEET];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        const header = rows[CALLPLAN_HEADER_ROW - 1] || [];
+        const idx = buildIndex(header, CALLPLAN_COLUMNS);
+        const data = [];
+        for (let i = CALLPLAN_HEADER_ROW; i < rows.length; i++) {
+          const r = rows[i] || [];
+          if (isRowEmpty(r)) continue;
+          data.push({
+            company: get(r, idx['บริษัท']),
+            channel: get(r, idx['ช่องทาง']),
+            order: get(r, idx['ลำดับการเข้าเยี่ยม']),
+            shopCode: get(r, idx['รหัสร้านค้า']),
+            shopName: get(r, idx['ชื่อร้านค้า']),
+            empCode: get(r, idx['รหัสพนักงาน']),
+            empFirst: get(r, idx['ชื่อพนักงาน']),
+            empLast: get(r, idx['นามสกุลพนักงาน']),
+            visitDate: get(r, idx['วันที่เข้าเยี่ยม']),
+          });
+        }
+        return data;
+      }
+
+      function parseVisits(wb) {
+        const sheet = wb.Sheets[VISITS_SHEET];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        const header = rows[VISITS_HEADER_ROW - 1] || [];
+        const idx = buildIndex(header, VISITS_COLUMNS);
+        const data = [];
+        for (let i = VISITS_HEADER_ROW; i < rows.length; i++) {
+          const r = rows[i] || [];
+          if (isRowEmpty(r)) continue;
+          const durationStr = get(r, idx['ใช้เวลา']);
+          data.push({
+            empCode: get(r, idx['รหัสพนักงาน']),
+            empName: get(r, idx['ชื่อพนักงาน']),
+            shopCode: get(r, idx['รหัสร้านค้า']),
+            shopName: get(r, idx['ชื่อร้านค้า']),
+            timeIn: get(r, idx['เวลาเข้า']),
+            timeOut: get(r, idx['เวลาออก']),
+            usedMinutes: parseMinutes(durationStr),
+            date: get(r, idx['วันที่เข้าเยี่ยม']),
+          });
+        }
+        return data;
+      }
+
+      function parseClosed(wb) {
+        const sheet = wb.Sheets[CLOSED_SHEET];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false });
+        const header = rows[CLOSED_HEADER_ROW - 1] || [];
+        const idx = buildIndex(header, CLOSED_COLUMNS);
+        const data = [];
+        for (let i = CLOSED_HEADER_ROW; i < rows.length; i++) {
+          const r = rows[i] || [];
+          if (isRowEmpty(r)) continue;
+          data.push({
+            createdDate: get(r, idx['createdDate']),
+            shopCode: get(r, idx['shopCode']),
+            shopName: get(r, idx['shopName']),
+            createdBy: get(r, idx['createdBy']),
+            empFirst: get(r, idx['ชื่อ']),
+            empLast: get(r, idx['นามสกุล']),
+            reason: get(r, idx['ร้านปิด/ร้านไม่มีกิจกรรม'])
+          });
+        }
+        return data;
+      }
+
+      function isRowEmpty(arr) {
+        return !arr || arr.every(v => (v === null || v === undefined || String(v).trim() === ''));
+      }
+      function get(arr, idx) {
+        if (idx == null || idx < 0) return '';
+        const v = arr[idx];
+        return v == null ? '' : String(v).trim();
+      }
+
+      function parseMinutes(s) {
+        if (s == null) return NaN;
+        const str = String(s).trim();
+        if (!str) return NaN;
+        const num = Number(str);
+        if (!Number.isNaN(num)) return num; // assume already minutes
+        // HH:MM:SS or MM:SS
+        if (/^\d{1,2}(:\d{2}){1,2}$/.test(str)) {
+          const parts = str.split(':').map(x => parseInt(x, 10));
+          let h=0,m=0,s=0;
+          if (parts.length === 3) [h,m,s] = parts; else [m,s] = parts;
+          return h*60 + m + (s>=30 ? 1 : 0); // round seconds
+        }
+        // Thai: "X ชั่วโมง Y นาที" or "Y นาที"
+        let total = 0;
+        const hMatch = str.match(/(\d+(?:[\.,]\d+)?)\s*ชั่วโมง/);
+        if (hMatch) total += parseFloat(hMatch[1].replace(',', '.')) * 60;
+        const mMatch = str.match(/(\d+(?:[\.,]\d+)?)\s*นาที/);
+        if (mMatch) total += parseFloat(mMatch[1].replace(',', '.'));
+        if (total > 0) return Math.round(total);
+        return NaN;
+      }
+
+      function processData() {
+        if (!state.callplan || !state.visits) return;
+
+        // Build base rows from call plan
+        const baseMap = new Map(); // key -> row object
+        const pairToKey = new Map(); // empCode|shopCode -> key
+
+        for (const cp of state.callplan) {
+          const baseKey = `${cp.company}|${cp.channel}|${cp.shopCode}|${cp.shopName}|${cp.empCode}|${cp.empFirst}|${cp.empLast}`;
+          if (!baseMap.has(baseKey)) {
+            baseMap.set(baseKey, {
+              company: cp.company,
+              channel: cp.channel,
+              shopCode: cp.shopCode,
+              shopName: cp.shopName,
+              empCode: cp.empCode,
+              empFirst: cp.empFirst,
+              empLast: cp.empLast,
+              lt15: 0,
+              ge15: 0,
+              closed: 0,
+              never: 0,
+              key: baseKey,
+              _details: { lt15: [], ge15: [], closed: [] },
+              _search: ''
+            });
+          }
+          const pair = `${cp.empCode}|${cp.shopCode}`;
+          if (!pairToKey.has(pair)) pairToKey.set(pair, baseKey);
+        }
+
+        // Visits counts
+        for (const v of state.visits) {
+          const pair = `${v.empCode}|${v.shopCode}`;
+          const key = pairToKey.get(pair);
+          if (!key) continue; // skip visits not in call plan
+          const row = baseMap.get(key);
+          const mins = v.usedMinutes;
+          if (Number.isFinite(mins)) {
+            if (mins < 15) {
+              row.lt15 += 1;
+              row._details.lt15.push({ date: v.date, timeIn: v.timeIn, timeOut: v.timeOut, minutes: mins });
+            } else {
+              row.ge15 += 1;
+              row._details.ge15.push({ date: v.date, timeIn: v.timeIn, timeOut: v.timeOut, minutes: mins });
+            }
+          }
+        }
+
+        // Closed counts (match by createdBy==empCode and shopCode). Optional dataset
+        const closedRecords = Array.isArray(state.closed) ? state.closed : [];
+        for (const c of closedRecords) {
+          const createdBy = String(c.createdBy || '').trim();
+          const shop = String(c.shopCode || '').trim();
+          const pair = `${createdBy}|${shop}`;
+          const key = pairToKey.get(pair);
+          if (!key) continue;
+          const row = baseMap.get(key);
+          row.closed += 1;
+          row._details.closed.push({ date: c.createdDate, reason: c.reason });
+        }
+
+        // If closed report is missing, status shows as optional
+
+        // Never visited flag
+        for (const row of baseMap.values()) {
+          const sum = row.lt15 + row.ge15 + row.closed;
+          row.never = sum === 0 ? 1 : 0;
+          row._search = [row.company,row.channel,row.shopCode,row.shopName,row.empCode,row.empFirst,row.empLast,row.lt15,row.ge15,row.closed,row.never].join(' ').toLowerCase();
+        }
+
+        const results = Array.from(baseMap.values());
+        state.results = results;
+        // Re-apply current filters (search + dashboard) on fresh data
+        applyFiltersAndRender();
+        message.textContent = `ประมวลผลสำเร็จ: ${results.length} แถว`;
+        showSuccessToast('ประมวลผลเสร็จสิ้น');
+      }
+
+      function renderTable(rows) {
+        resultBody.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        for (const r of rows) {
+          const tr = document.createElement('tr');
+          tr.className = 'odd:bg-white even:bg-gray-50';
+          tr.innerHTML = `
+            <td class="px-3 py-2">${escapeHtml(r.company)}</td>
+            <td class="px-3 py-2">${escapeHtml(r.channel)}</td>
+            <td class="px-3 py-2">${escapeHtml(r.shopCode)}</td>
+            <td class="px-3 py-2">${escapeHtml(r.shopName)}</td>
+            <td class="px-3 py-2">${escapeHtml(r.empCode)}</td>
+            <td class="px-3 py-2">${escapeHtml(r.empFirst)}</td>
+            <td class="px-3 py-2">${escapeHtml(r.empLast)}</td>
+            <td class="px-3 py-2 text-right">${r.lt15 ? `<button data-action="show-detail" data-type="lt15" data-key="${escapeHtml(r.key)}" class="underline text-red-700 hover:text-red-800">${r.lt15}</button>` : '0'}</td>
+            <td class="px-3 py-2 text-right">${r.ge15 ? `<button data-action="show-detail" data-type="ge15" data-key="${escapeHtml(r.key)}" class="underline text-green-700 hover:text-green-800">${r.ge15}</button>` : '0'}</td>
+            <td class="px-3 py-2 text-right">${r.closed ? `<button data-action="show-detail" data-type="closed" data-key="${escapeHtml(r.key)}" class="underline text-gray-700 hover:text-gray-800">${r.closed}</button>` : '0'}</td>
+            <td class="px-3 py-2 text-right">${r.never}</td>
+          `;
+          frag.appendChild(tr);
+        }
+        resultBody.appendChild(frag);
+      }
+
+      function doSearch() {
+        const q = searchInput.value.toLowerCase().trim();
+        state.filter.tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+        applyFiltersAndRender();
+      }
+
+      function applyFiltersAndRender() {
+        const base = state.results || [];
+        // Apply search tokens
+        const bySearch = state.filter.tokens.length
+          ? base.filter(r => state.filter.tokens.every(t => r._search.includes(t)))
+          : base;
+        // Apply dashboard card filter
+        let filtered = bySearch;
+        switch (state.filter.dash) {
+          case 'lt15': filtered = bySearch.filter(r => Number(r.lt15) > 0); break;
+          case 'ge15': filtered = bySearch.filter(r => Number(r.ge15) > 0); break;
+          case 'closed': filtered = bySearch.filter(r => Number(r.closed) > 0); break;
+          case 'never': filtered = bySearch.filter(r => Number(r.never) > 0); break;
+          default: break; // null -> no extra filter
+        }
+        // Keep the latest filtered set for export
+        state.filteredRows = filtered;
+        // Paginate: show first 100, allow See more
+        if (!state.view) state.view = { rows: [], visible: 100, pageSize: 100 };
+        state.view.rows = filtered;
+        state.view.visible = Math.min(state.view.pageSize, filtered.length);
+        renderCurrentView();
+        updateDashboard(filtered);
+      }
+
+      function exportFilteredToExcel() {
+        const rows = state.filteredRows || [];
+        if (!rows.length) { message.textContent = 'ไม่มีข้อมูลให้ส่งออก'; return; }
+        const header = ['บริษัท','ช่องทาง','รหัสร้านค้า','ชื่อร้านค้า','รหัสพนักงาน','ชื่อพนักงาน','นามสกุลพนักงาน','< 15 นาที','≥ 15 นาที','บันทึกร้านปิด','ไม่เคยเยี่ยม'];
+        const aoa = [header];
+        for (const r of rows) {
+          aoa.push([
+            r.company, r.channel, r.shopCode, r.shopName,
+            r.empCode, r.empFirst, r.empLast,
+            Number(r.lt15)||0, Number(r.ge15)||0, Number(r.closed)||0, Number(r.never)||0
+          ]);
+        }
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Results');
+        const ts = new Date();
+        const pad = (n) => String(n).padStart(2,'0');
+        const name = `summary_${ts.getFullYear()}${pad(ts.getMonth()+1)}${pad(ts.getDate())}_${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}.xlsx`;
+        XLSX.writeFile(wb, name);
+      }
+
+      function renderCurrentView() {
+        const total = state.view?.rows?.length || 0;
+        const visible = Math.min(state.view?.visible || 0, total);
+        const slice = (state.view?.rows || []).slice(0, visible);
+        renderTable(slice);
+        // Controls
+        rowsInfo.textContent = total ? `แสดง ${visible.toLocaleString('th-TH')}/${total.toLocaleString('th-TH')}` : '';
+        if (visible < total) {
+          seeMoreBtn.classList.remove('hidden');
+        } else {
+          seeMoreBtn.classList.add('hidden');
+        }
+      }
+
+      function updateDashboard(rows) {
+        const list = Array.isArray(rows) ? rows : [];
+        const uniqueShops = new Set(list.map(r => r.shopCode)).size;
+        const sum = (k) => list.reduce((acc, r) => acc + (Number(r[k]) || 0), 0);
+        const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString('th-TH') : '0');
+        const cards = [
+          { key: null,   label: 'จำนวนร้าน', value: uniqueShops, styles: { base: 'bg-white border-gray-200 text-gray-800', active: 'ring-2 ring-amber-500 border-amber-300' }, dot: '#d97706' },
+          { key: 'lt15', label: '< 15 นาที', value: sum('lt15'), styles: { base: 'bg-red-50 border-red-200 text-red-800', active: 'ring-2 ring-red-500 border-red-300' }, dot: '#dc2626' },
+          { key: 'ge15', label: '≥ 15 นาที', value: sum('ge15'), styles: { base: 'bg-green-50 border-green-200 text-green-800', active: 'ring-2 ring-green-500 border-green-300' }, dot: '#16a34a' },
+          { key: 'closed', label: 'บันทึกร้านปิด', value: sum('closed'), styles: { base: 'bg-gray-50 border-gray-200 text-gray-800', active: 'ring-2 ring-gray-500 border-gray-300' }, dot: '#6b7280' },
+          { key: 'never', label: 'ไม่เคยเยี่ยม', value: sum('never'), styles: { base: 'bg-amber-50 border-amber-200 text-amber-800', active: 'ring-2 ring-amber-500 border-amber-300' }, dot: '#d97706' },
+        ];
+        dashboardEl.innerHTML = cards.map(c => {
+          const active = (state.filter.dash ?? null) === c.key;
+          const base = 'rounded-lg border p-3 shadow-sm transition cursor-pointer select-none';
+          const classes = `${c.styles.base} ${active ? c.styles.active : 'hover:border-gray-300 hover:shadow'}`;
+          const pressed = active ? 'true' : 'false';
+          const k = c.key == null ? 'all' : c.key;
+          return `
+          <button type="button" role="button" aria-pressed="${pressed}" data-key="${k}" class="${base} ${classes}">
+            <div class="flex items-center justify-between">
+              <div class="text-xs opacity-80">${c.label}</div>
+              <span class="inline-block w-2 h-2 rounded-full" style="background-color:${c.dot}"></span>
+            </div>
+            <div class="text-xl font-semibold mt-1">${fmt(c.value)}</div>
+          </button>`;
+        }).join('');
+      }
+
+      // Click-to-filter on dashboard using event delegation
+      dashboardEl.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-key]');
+        if (!btn) return;
+        const key = btn.getAttribute('data-key');
+        const normalize = (k) => (k === 'all' ? null : k);
+        const selected = normalize(key);
+        // Toggle off when clicking the same active card
+        state.filter.dash = (state.filter.dash ?? null) === selected ? null : selected;
+        applyFiltersAndRender();
+      });
+
+      processBtn.addEventListener('click', processData);
+      exportBtn.addEventListener('click', exportFilteredToExcel);
+
+      function doReset() {
+        state.callplan = null; state.visits = null; state.closed = null; state.results = [];
+        state.files = { callplan: null, visits: null, closed: null };
+        state.filter = { tokens: [], dash: null };
+        state.view = { rows: [], visible: 100, pageSize: 100 };
+        setStatus('callplan', false, '');
+        setStatus('visits', false, '');
+        setStatus('closed', false, '');
+        enableProcessIfReady();
+        resultBody.innerHTML = '';
+        dashboardEl.innerHTML = '';
+        message.textContent = '';
+        searchInput.value = '';
+        rowsInfo.textContent = '';
+        seeMoreBtn.classList.add('hidden');
+        showSuccessToast('ล้างไฟล์และผลลัพธ์เรียบร้อย');
+      }
+
+      resetBtn.addEventListener('click', () => {
+        showConfirmModal({
+          title: 'ยืนยันการล้างไฟล์ทั้งหมด',
+          message: 'การกระทำนี้จะล้างไฟล์ที่อัปโหลดและผลลัพธ์ทั้งหมด',
+          confirmText: 'ยืนยัน',
+          cancelText: 'ยกเลิก',
+          confirmClass: 'bg-red-600 hover:bg-red-700 text-white',
+          onConfirm: doReset,
+        });
+      });
+      // Detail modal helpers and click delegation
+      // Simple confirm modal (naive, in-page)
+      function buildConfirmModal() {
+        if (document.getElementById('confirmModal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'confirmModal';
+        modal.className = 'hidden fixed inset-0 z-50';
+        modal.innerHTML = `
+          <div class="absolute inset-0 bg-black/40" data-backdrop></div>
+          <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="w-full max-w-md bg-white rounded-xl shadow-lg border border-gray-200">
+              <div class="px-4 py-3 border-b border-gray-200 font-semibold" id="confirmTitle">ยืนยัน</div>
+              <div class="p-4 text-sm text-gray-700" id="confirmMessage"></div>
+              <div class="px-4 py-3 border-t border-gray-100 flex justify-end gap-2">
+                <button id="confirmCancel" class="px-3 py-1.5 rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200">ยกเลิก</button>
+                <button id="confirmOk" class="px-3 py-1.5 rounded-md text-white bg-amber-600 hover:bg-amber-700">ยืนยัน</button>
+              </div>
+            </div>
+          </div>`;
+        document.body.appendChild(modal);
+      }
+
+      function showConfirmModal(opts) {
+        buildConfirmModal();
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmTitle');
+        const msgEl = document.getElementById('confirmMessage');
+        const okBtn = document.getElementById('confirmOk');
+        const cancelBtn = document.getElementById('confirmCancel');
+        const backdrop = modal.querySelector('[data-backdrop]');
+
+        titleEl.textContent = opts?.title || 'ยืนยัน';
+        msgEl.textContent = opts?.message || '';
+        cancelBtn.textContent = opts?.cancelText || 'ยกเลิก';
+        okBtn.textContent = opts?.confirmText || 'ยืนยัน';
+        okBtn.className = 'px-3 py-1.5 rounded-md ' + (opts?.confirmClass || 'text-white bg-amber-600 hover:bg-amber-700');
+
+        const cleanup = () => {
+          okBtn.onclick = null;
+          cancelBtn.onclick = null;
+          document.removeEventListener('keydown', onKey);
+          modal.classList.add('hidden');
+        };
+        const onKey = (e) => {
+          if (e.key === 'Escape') { cleanup(); opts?.onCancel?.(); }
+          if (e.key === 'Enter') { cleanup(); opts?.onConfirm?.(); }
+        };
+        cancelBtn.onclick = () => { cleanup(); opts?.onCancel?.(); };
+        okBtn.onclick = () => { cleanup(); opts?.onConfirm?.(); };
+        backdrop.onclick = () => { cleanup(); opts?.onCancel?.(); };
+        document.addEventListener('keydown', onKey);
+
+        modal.classList.remove('hidden');
+        setTimeout(() => { try { okBtn.focus(); } catch(_){} }, 0);
+      }
+
+      function buildDetailModal() {
+        if (document.getElementById('detailModal')) return;
+        const modal = document.createElement('div');
+        modal.id = 'detailModal';
+        modal.className = 'hidden fixed inset-0 z-50';
+        modal.innerHTML = `
+          <div class="absolute inset-0 bg-black/40"></div>
+          <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="w-full max-w-3xl bg-white rounded-xl shadow-lg border border-gray-200">
+              <div class="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <div id="detailTitle" class="font-semibold">รายละเอียด</div>
+                <button id="detailClose" class="px-2 py-1 rounded-md text-gray-600 hover:bg-gray-100">ปิด</button>
+              </div>
+              <div class="p-4 overflow-auto max-h-[70vh]">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gray-100 text-gray-700" id="detailHead"></thead>
+                  <tbody id="detailBody" class="divide-y"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>`;
+        document.body.appendChild(modal);
+        document.getElementById('detailClose').addEventListener('click', hideDetailModal);
+        modal.addEventListener('click', (e) => { if (e.target === modal.firstElementChild) hideDetailModal(); });
+      }
+
+      function showDetailModal(title, headHtml, bodyRowsHtml) {
+        buildDetailModal();
+        document.getElementById('detailTitle').textContent = title;
+        document.getElementById('detailHead').innerHTML = `<tr>${headHtml}</tr>`;
+        document.getElementById('detailBody').innerHTML = bodyRowsHtml;
+        document.getElementById('detailModal').classList.remove('hidden');
+      }
+      function hideDetailModal() {
+        document.getElementById('detailModal')?.classList.add('hidden');
+      }
+
+      function showDetails(key, type) {
+        const row = (state.results || []).find(r => r.key === key);
+        if (!row) return;
+        if (type === 'lt15' || type === 'ge15') {
+          const list = row._details?.[type] || [];
+          const head = '<th class="px-3 py-2 text-left">วันที่</th><th class="px-3 py-2 text-left">เวลาเข้า</th><th class="px-3 py-2 text-left">เวลาออก</th><th class="px-3 py-2 text-right">ใช้เวลา (นาที)</th>';
+          const body = list.map(d => `
+            <tr>
+              <td class="px-3 py-2">${escapeHtml(d.date || '')}</td>
+              <td class="px-3 py-2">${escapeHtml(d.timeIn || '')}</td>
+              <td class="px-3 py-2">${escapeHtml(d.timeOut || '')}</td>
+              <td class="px-3 py-2 text-right">${Number(d.minutes||0)}</td>
+            </tr>`).join('');
+          const title = `${type === 'lt15' ? '< 15 นาที' : '≥ 15 นาที'} — ${row.empFirst} ${row.empLast} | ${row.shopName}`;
+          showDetailModal(title, head, body || '<tr><td class="px-3 py-2" colspan="4">ไม่มีข้อมูล</td></tr>');
+        } else if (type === 'closed') {
+          const list = row._details?.closed || [];
+          const head = '<th class="px-3 py-2 text-left">วันที่/เวลา</th><th class="px-3 py-2 text-left">เหตุผล</th>';
+          const body = list.map(d => `
+            <tr>
+              <td class="px-3 py-2">${escapeHtml(d.date || '')}</td>
+              <td class="px-3 py-2">${escapeHtml(d.reason || '')}</td>
+            </tr>`).join('');
+          const title = `บันทึกร้านปิด — ${row.empFirst} ${row.empLast} | ${row.shopName}`;
+          showDetailModal(title, head, body || '<tr><td class="px-3 py-2" colspan="2">ไม่มีข้อมูล</td></tr>');
+        }
+      }
+
+      resultBody.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="show-detail"]');
+        if (!btn) return;
+        const key = btn.getAttribute('data-key');
+        const type = btn.getAttribute('data-type');
+        showDetails(key, type);
+      });
+
+      // Toast success popup
+      function ensureToastContainer() {
+        let c = document.getElementById('toastContainer');
+        if (!c) {
+          c = document.createElement('div');
+          c.id = 'toastContainer';
+          c.className = 'fixed top-4 right-4 z-50 space-y-2';
+          document.body.appendChild(c);
+        }
+        return c;
+      }
+      function showSuccessToast(text) {
+        const container = ensureToastContainer();
+        const toast = document.createElement('div');
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        toast.className = 'flex items-center gap-3 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg transform transition-all duration-300 opacity-0 translate-y-2';
+        toast.innerHTML = `
+          <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm-1 15-4-4 1.414-1.414L11 13.172l4.586-4.586L17 10l-6 7Z"/>
+          </svg>
+          <div class="text-sm font-medium">${escapeHtml(text)}</div>
+        `;
+        container.appendChild(toast);
+        // Animate in
+        requestAnimationFrame(() => {
+          toast.classList.remove('opacity-0','translate-y-2');
+        });
+        const remove = () => {
+          toast.classList.add('opacity-0','translate-y-2');
+          setTimeout(() => toast.remove(), 250);
+        };
+        const timer = setTimeout(remove, 3500);
+        toast.addEventListener('click', () => { clearTimeout(timer); remove(); });
+      }
+      seeMoreBtn.addEventListener('click', () => {
+        if (!state.view) return;
+        state.view.visible = Math.min(state.view.visible + state.view.pageSize, state.view.rows.length);
+        renderCurrentView();
+      });
+      searchInput.addEventListener('input', doSearch);
+    </script>
+  </body>
+  </html>
