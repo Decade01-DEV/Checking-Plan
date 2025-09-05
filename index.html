@@ -204,11 +204,24 @@
       }
 
       // File handling
+      // Prevent browser from opening files if dropped outside the dropzone
+      window.addEventListener('dragover', (e) => { e.preventDefault(); });
+      window.addEventListener('drop', (e) => {
+        // If drop happens outside our dropzone, just prevent default navigation
+        if (!dropzone.contains(e.target)) e.preventDefault();
+      });
+
       dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('drop-active'); });
       dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drop-active'));
       dropzone.addEventListener('drop', async (e) => {
         e.preventDefault(); dropzone.classList.remove('drop-active');
         const files = Array.from(e.dataTransfer.files || []);
+        // Sync to hidden input for consistency with normal selection flows
+        try {
+          const dt = new DataTransfer();
+          for (const f of files) dt.items.add(f);
+          fileInput.files = dt.files;
+        } catch (_) { /* Fallback: ignore if DataTransfer not supported */ }
         await handleFiles(files);
       });
       fileInput.addEventListener('change', async (e) => {
